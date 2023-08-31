@@ -1,0 +1,12 @@
+
+get all primes below 1 million
+        
+for each prime, p, below 1 million 
+    find the longest consecutive prime sum that starts with p
+        start with the trivial case of just p = p
+        while the sum is less than 1 million
+            add the next consecutive prime to the sum
+            check that the sum is prime, and if it is longer than the previous longest sum
+                if true, then store both the number of summands and the sum total
+                
+print first summand, total number of summands and the sum total

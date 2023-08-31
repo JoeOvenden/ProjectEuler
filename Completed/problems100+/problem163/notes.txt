@@ -1,0 +1,311 @@
+project euler problem 163 notes
+
+nodes
+	- list of directly adjacent nodes, together with the angle of the line they are on
+		angles take values in the range (0, 30, 60, 90, 120, 150), see diagrams.png
+		this list is then to be processed to contain all nodes that are connected by straight lines
+	- id
+	- triangle_id
+
+triangles
+	- id
+	- list of nodes
+	- flat/upside down
+
+layer
+	- id
+	- list of triangles
+
+	
+	generate size 1 then add triangles to make size 2, etc
+	to generate size 1:
+		create 7 nodes
+		create edges
+			0 -> 1, angle = 0
+			0 -> 2, angle = 150
+			0 -> 3, angle = 120
+			1 -> 4, angle = 0
+			1 -> 2, angle = 90
+			2 -> 4, angle = 30
+			2 -> 5, angle = 150
+			2 -> 6, angle = 90
+			2 -> 3, angle = 30
+			3 -> 6, angle = 120
+			4 -> 5, angle = 60
+			5 -> 6, angle = 60
+		create triangle with these nodes
+			triangle.nodes should be indexed in the way above
+		create layer with this triangle
+
+	add layer:
+		first triangle:
+			add node 4 of the first triangle of the previous layer to the node list first
+			i.e. it node 4 of that triangle is node 0 of this triangle
+			then create 6 more nodes and then create edges like above
+		odd index triangles, the upside down ones:
+
+			current triangle index = i
+			nodes:
+				node 0 is node 6 of the triangle with index (i - 1) of the previous layer
+				node 3 is node 5 of the triangle with index (i - 1) of the previous layer
+				node 4 is node 6 of the previous triangle in the same layer
+				node 5 is node 3 of the previous triangle in the same layer
+				node 6 is node 0 of the previous triangle in the same layer
+
+				generate nodes in between to fill in the gaps ^
+
+			edges:
+				for upside down triangle edges are made in the same way but the angles
+				should be 180 - x (mod 180) where x is the angle for flat triangles
+				examples:
+				0 -> 1, angle = 180 - 0 (mod 180) = 0
+				0 -> 2, angle = 180 - 150 = 30
+				0 -> 3, angle = 180 - 120 = 60
+				1 -> 4, angle = 180 - 0 (mod 180) = 0
+
+		even index triangles, flat triangles with two connecting nodes:
+			nodes:
+				node 0 is node 0 of the previous triangle in the same layer
+				node 1 is node 1 of the previous triangle in the same layer
+				node 4 is node 4 of the previous triangle in the same layer
+				generate the other nodes as new nodes
+
+			edges:
+				edges as usual
+
+
+
+traverse node structure
+
+for each node
+	will refer to this node as the "home node"
+	
+	while paths not exhausted
+		each search has a path starting with the home node
+		the path shall be represented as follows
+		[home node, i0, i1, i2, ... , ik] where each in is the index of the node in the previous nodes adjacent_nodes list
+		
+		i.e. path = [home node, 1, 0, 4] means that the second node in the path is found at index 0 in the adjacent_nodes list of home node
+		
+		at first, travel from node to node by going to index 0 in adjacent nodes
+			checking that the new node is not already in the path
+
+		something like this
+		path = [home node , 0 , 0 , 0 , 0 , 0 , 0]
+
+		note most paths will be invalid, and when we come to an invalid path it will be skipped over and onto the next
+
+		the next path to check would be
+		path = [home node , 0 , 0 , 0 , 0 , 0 , 1]
+
+		then maybe this
+		path = [home node , 0 , 0 , 0 , 0 , 0 , 2]
+
+		and then this and so on
+		path = [home node , 0 , 0 , 0 , 0 , 1 , 0, 0 ,0]
+
+		the idea is, make the default choice until it is no longer valid
+		then go back one step, and make the next choice available, then carry on making the default choice, (index 0)
+
+
+		one a valid path has been made, i.e. one that makes a triangle
+		we can map the path to a unique number
+
+		to do this we first map the node ids to prime numbers
+		by f(i): i -> PRIMES[i], where i = node id and PRIMES = list of primes
+
+		then for node ids [id0, id1, id2, ... , idn] in the path we make path id as follows:
+			path id = f(id0) * f(id1) * f(id2) * ... * f(idn)
+			
+		this is unique since prime factorisation is unique
+		so if two paths have the same prime id, then they have the same prime factorisation meaning they have the same node ids
+		meaning they are in fact, indentical
+			note: provided the validation checks when constructing valid paths is correct
+		
+		alternative methods:
+			make a hash map
+		
+
+
+		essentially:
+
+		try to add new_node
+		IF FAIL
+			index += 1
+
+			IF INDEX ERROR
+				go back a step and index += 1
+
+		IF SUCCEED
+			move to next node
+	
+
+
+
+
+THOUGHTS
+
+NOTE that the angles can take on only 6 different values
+that is, tangential to the sides of the triangle, or normal to the sides of the triangle
+
+for T(1) triangle, 3 initial nodes for each vertex of the triangle
+				   3 nodes for the midpoints of the edges
+				   1 node for the middle of the triangle
+
+Okay, at the time of writing this, version-1 is complete and it works but takes
+	far too long. I can get an answer to T(1) and T(2) in a sensible time but
+	after that it really starts to slow down...
+
+--------- start of version 1.1 -----------
+
+	I had a look to see how many times Path.isValid is called and it was quite scary
+	I'll likely refer to this a few more time so I will call the number of times 
+	Path.isValid is called for size s, C(s)  (checks(s))
+	C(1) = 1266
+	C(2) = 118,230
+	C(3) = 2,417,520
+
+	We've got a long way to go!
+
+
+-----runtime improvements-----
+
+update: now checks that the first node after root has an id lower than the root id,
+		otherwise returns False
+
+		result: around a 50% reduction in checks
+
+		C(1) = 612
+		C(2) = 58,140
+		C(3) = 1,110,477
+		C(4) = 17,138,712
+
+next update:
+	check that all nodes have id lower than root
+
+thoughts:
+	when sides == 2
+		check if node can reach root in a straight line
+
+
+
+----- version 2 - new method of finding triangles -----
+
+will be added a new class line with attributes as follows
+
+class line
+	- list of nodes ordered by location from start to end
+	- start node
+	- end node
+	- angle
+
+
+For this triangle finding method, lines with an angle 0 will be important,
+ I will from now call these lines "zero lines".
+
+From inspection it seems that every triangle found must contain at least one node
+ that is on a zero line. This means that if we check each node on all the zero
+ lines to see if there are any possible triangles that contain the node, that we
+ would find all possible triangles.
+
+It also seems that every line on the triangle (longest lines, not segments) must
+ either start of finish on: the bottom zero line, or the start or end node of above
+ zero line higher up
+
+
+Create lines:
+	Define a function traverse (start_node, angle)
+		make a new line object
+		set line.angle = angle
+		set line.start_node = start_node
+		make node list with start node in it
+		traverse along the line adding each node to the node list
+		when reached the end set the end node
+		node should record all the lines that it is on
+
+
+	Create zero lines:
+		When creating node network
+
+			make a list of nodes, zero node list, that are the start of 
+			zero lines, i.e. the first node (relative to size 1 triangle, 
+			see diagrams) in the last triangle to be added to any layer. 
+			Must also remember to do this for the very first size 1 triangle size 
+
+			more mathematically put:
+				layer id n has 2n+1 triangles in it
+				therefore in the add flat triangle function
+					if layer already has 2n triangles, i.e. this triangle is 2n+1
+						collect zero node
+
+			in the bottom triangle function add zero node if first triangle
+			
+
+		After node network has been created
+			For every node, root, in the zero node list
+				Traverse(root, 0)
+
+
+	Creating the rest of the lines:
+		For each node, root, on the bottom zero line
+			For each node, n, adjacent to root with angle not zero
+				Traverse(root, n.angle)
+				
+		For each start and end node of every other zero line
+			If start node
+				Traverse (start_node, 150)
+
+			If end node
+				Traverse (end_node, 30)
+
+
+Find triangles:
+	Define traverse_line_1(root, angle):
+		find the line that root is on where line.angle = angle
+		for every node_0 on line
+			traverse_line_2(root, node_0, angle)
+
+	Define traverse_line_2(root, node_0, angle):
+		for every line that node_0 is on where line.angle != angle
+			for every node on line
+				if node is connected to root by a line
+					triangle has been found
+					add solution
+
+	For each zero line
+		For each node, root, from left to right
+			traverse_line_1(root, 0)
+			for [node, angle] in root.adjacent_nodes
+				if angle not 0 (*2)
+					traverse_line_1(root, angle)
+
+	For root as apex of hatched triangle
+		for [node, angle] in root.adjacent_nodes
+			traverse_line_1(root,angle)
+
+			
+"""""""""""""""""""""""""""""""""""""""""""""
+			For each node, n0, to the right of the root node (*)
+				For each non-zero line, L, that n0 is on
+					For every other node, n1, that is on L
+						if n1 is connected to root by a line
+							triangle has been found
+""""""""""""""""""""""""""""""""""""""""""""""""""
+
+Store each triangle found as a list of 3 node ids [id1, id2, id3]
+Ordered by id1, then id2, then id3.
+This way new triangles can be checked quickly to see if they are redundant or not
+
+(*2): The fact that angle = 0 has been handled outside the for loop is because
+      most nodes on the zero line have two adjacent nodes with angle = 0
+
+(*): No need to traverse nodes to the left of the root node.
+	 All triangles that contain these nodes have been found.
+
+NOTE: Potential improvement, don't need to call traverse_line_2 on zero nodes left
+      of root node
+
+NOTE: Potential improvement, I believe that if zero lines were to be checked from
+      bottom-up as it were, then at the stage of traversing a non-zero line L,
+	  we would only need to go "above" the zero line, and not below.
+	  If we go below there are no new triangles to be found

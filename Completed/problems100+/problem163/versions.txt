@@ -1,0 +1,29 @@
+Version 1
+    Implemented with the laziest algorithm
+
+Version 1.1
+    updates to Path.isValid
+    - keeps track of how many times function is called
+    - ignores all nodes that have an id lower than the root node
+      since this will result in finding already found triangles
+
+Version 2
+    class Line added
+
+Version 2.1
+    - Fixed the line of code: 
+
+        triangle.insert_node(4, node)
+
+      In Hatched_Triangle.add_bottom_triangle.
+      It should have been 0 instead of 4
+
+    - I noticed that some lines were being duplicated, while investigating this
+       I saw that some nodes had duplicate adjacent nodes so I put a quick fix in
+       here. Shouldn't affect T(n) values but it will run slightly faster now
+
+    - Once a node has been "processed", meaning, all triangles that contain that node
+      have been found. Then the node id is insorted into an ordered list of processed
+      node ids.
+      The program then skips processed nodes when examining nodes.
+      Result: reduced time to get value for T(36) from 107 seconds to 75 seconds
